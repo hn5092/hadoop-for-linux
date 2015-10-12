@@ -9,8 +9,13 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.NodeState;
+import org.apache.hadoop.yarn.api.records.QueueACL;
+import org.apache.hadoop.yarn.api.records.QueueInfo;
+import org.apache.hadoop.yarn.api.records.QueueUserACLInfo;
 import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
+import org.apache.hadoop.yarn.applications.distributedshell.Client;
 import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync.CallbackHandler;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -44,7 +49,7 @@ public class MyApplicationMaster {
 	}
 
 	@Test
-	public void testClient() {
+	public void testCluster() {
 		YarnClient yarnClient = YarnClient.createYarnClient();
 		yarnClient.init(yarnConf);
 		yarnClient.start();
@@ -65,7 +70,23 @@ public class MyApplicationMaster {
 						+ node.getHttpAddress() + ", nodeRackName"
 						+ node.getRackName() + ", nodeNumContainers"
 						+ node.getNumContainers());
-			}
+//				 QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
+//				    LOG.info("Queue info"
+//				        + ", queueName=" + queueInfo.getQueueName()
+//				        + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
+//				        + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
+//				        + ", queueApplicationCount=" + queueInfo.getApplications().size()
+//				        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());		
+
+				    List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
+				    for (QueueUserACLInfo aclInfo : listAclInfo) {
+				      for (QueueACL userAcl : aclInfo.getUserAcls()) {
+				        LOG.info("User ACL Info for Queue"
+				            + ", queueName=" + aclInfo.getQueueName()			
+				            + ", userAcl=" + userAcl.name());
+				      }
+			}}
+			YarnClientApplication app = yarnClient.createApplication();
 		} catch (YarnException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -73,7 +94,17 @@ public class MyApplicationMaster {
 	}
 
 	@Test
-	public void testAppMaster() {
+	public void testClient() {
+		try {
+			yarnConf.set("fs.defaultFS", "hdfs://xym01:9000");
+			Client client = new Client(yarnConf);
+			String[] args ={"-jar","src/hadoop-1620141472975040262.jar","-shell_command","ls","-num_containers","10","-container_memory","350","-master_memory","350"};
+			client.init(args);
+			client.run();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 }
